@@ -1,0 +1,974 @@
+firewall {
+    all-ping enable
+    broadcast-ping disable
+    group {
+        address-group ADDR-BLACKLIST {
+            description "GLOBAL BLACKLIST"
+        }
+        address-group ADDR-DNS {
+            address 130.111.32.11
+            address 130.111.130.7
+            description DNS
+        }
+        address-group ADDR-OPENDNS {
+            address 208.67.222.222
+            address 208.67.220.220
+            description OPENDNS
+        }
+        address-group ADDR-WHITELIST {
+            description "GLOBAL WHITELIST"
+        }
+        address-group ADDR-OPENDNS-BYPASS {
+            description "OPENDNS BYPASS"
+        }
+        network-group NET-LAN {
+            description LAN
+            network 169.244.86.176/28
+        }
+        network-group NET-MANAGEMENT {
+            network 130.111.32.0/24
+            network 130.111.39.0/24
+            network 130.111.40.0/24
+            network 130.111.130.0/24
+            network 130.111.11.200/29
+            network 10.96.0.0/16
+            network 169.244.5.200/30
+            network 169.244.144.172/31
+            network 130.111.44.192/27
+            network 130.111.30.0/24
+            network 169.244.71.176/28
+        }
+        network-group NET-L-INTERNAL {
+            network 192.168.30.0/24
+        }
+    }
+    ipv6-receive-redirects disable
+    ipv6-src-route disable
+    ip-src-route disable
+    log-martians disable
+    modify ROUTE-L-INTERNAL {
+        rule 1000 {
+            action modify
+            modify {
+                table 10
+            }
+            source {
+                group {
+                    network-group NET-L-INTERNAL
+                }
+            }
+        }
+    }
+    name INSIDE-LOCAL {
+        default-action drop
+        rule 1000 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 1001 {
+            action drop
+            state {
+                invalid enable
+            }
+        }
+        rule 1010 {
+            action accept
+            icmp {
+                type-name echo-request
+            }
+            protocol icmp
+            state {
+                new enable
+            }
+        }
+        rule 1020 {
+            action accept
+            protocol igmp
+        }
+        rule 1030 {
+            action accept
+            destination {
+                port 67
+            }
+            protocol udp
+            state {
+                new enable
+            }
+        }
+        rule 1040 {
+            action accept
+            destination {
+                port 53
+            }
+            protocol tcp_udp
+            state {
+                new enable
+            }
+        }
+        rule 1050 {
+            action accept
+            destination {
+                port 123
+            }
+            protocol udp
+            state {
+                new enable
+            }
+        }
+        rule 2000 {
+            action accept
+            destination {
+                port 22
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2010 {
+            action accept
+            destination {
+                port 161
+            }
+            protocol udp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2020 {
+            action accept
+            destination {
+                port 7
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2030 {
+            action accept
+            destination {
+                port 5001
+            }
+            protocol tcp_udp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+    }
+    name LAN-IN {
+        default-action drop
+        rule 1000 {
+            action drop
+            source {
+                group {
+                    address-group ADDR-BLACKLIST
+                }
+            }
+        }
+        rule 1001 {
+            action drop
+            destination {
+                group {
+                    address-group ADDR-BLACKLIST
+                }
+            }
+        }
+        rule 1010 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 1011 {
+            action drop
+            state {
+                invalid enable
+            }
+        }
+        rule 1012 {
+            action accept
+            icmp {
+                type-name echo-request
+            }
+            protocol icmp
+            state {
+                new enable
+            }
+        }
+        rule 3000 {
+            action accept
+            destination {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8000 {
+            action accept
+            destination {
+                address 130.111.32.0/24
+                port 25
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8009 {
+            action drop
+            destination {
+                port 25
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8010 {
+            action accept
+            destination {
+                group {
+                    address-group ADDR-OPENDNS
+                }
+                port 53
+            }
+            protocol tcp_udp
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8011 {
+            action accept
+            destination {
+                group {
+                    address-group ADDR-DNS
+                }
+                port 53
+            }
+            protocol tcp_udp
+            source {
+                group {
+                    address-group ADDR-OPENDNS-BYPASS
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8019 {
+            action drop
+            destination {
+                port 53
+            }
+            disable
+            protocol tcp_udp
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 9000 {
+            action accept
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 9001 {
+            action accept
+            source {
+                group {
+                    address-group ADDR-WHITELIST
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 9002 {
+            action accept
+            destination {
+                group {
+                    address-group ADDR-WHITELIST
+                }
+            }
+            state {
+                new enable
+            }
+        }
+    }
+    name LAN-OUT {
+        default-action accept
+        rule 1000 {
+            action drop
+            source {
+                group {
+                    address-group ADDR-BLACKLIST
+                }
+            }
+        }
+        rule 1001 {
+            action drop
+            destination {
+                group {
+                    address-group ADDR-BLACKLIST
+                }
+            }
+        }
+        rule 1010 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 1011 {
+            action drop
+            state {
+                invalid enable
+            }
+        }
+        rule 1012 {
+            action accept
+            icmp {
+                type-name echo-request
+            }
+            protocol icmp
+            state {
+                new enable
+            }
+        }
+        rule 3000 {
+            action accept
+            destination {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            source {
+                group {
+                    network-group NET-LAN
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8000 {
+            action accept
+            destination {
+                port 25
+            }
+            protocol tcp
+            source {
+                address 130.111.32.0/24
+            }
+            state {
+                new enable
+            }
+        }
+        rule 8009 {
+            action drop
+            destination {
+                port 25
+            }
+            protocol tcp
+            state {
+                new enable
+            }
+        }
+        rule 8029 {
+            action drop
+            destination {
+                port 123
+            }
+            disable
+            protocol udp
+            state {
+                new enable
+            }
+        }
+        rule 8039 {
+            action drop
+            destination {
+                port 1900
+            }
+            protocol udp
+            state {
+                new enable
+            }
+        }
+        rule 9000 {
+            action accept
+            disable
+            state {
+                new enable
+            }
+        }
+        rule 9001 {
+            action accept
+            source {
+                group {
+                    address-group ADDR-WHITELIST
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 9002 {
+            action accept
+            destination {
+                group {
+                    address-group ADDR-WHITELIST
+                }
+            }
+            state {
+                new enable
+            }
+        }
+    }
+    name OUTSIDE-LOCAL {
+        default-action drop
+        rule 1000 {
+            action accept
+            state {
+                established enable
+                related enable
+            }
+        }
+        rule 1001 {
+            action drop
+            state {
+                invalid enable
+            }
+        }
+        rule 1010 {
+            action accept
+            icmp {
+                type-name echo-request
+            }
+            protocol icmp
+            state {
+                new enable
+            }
+        }
+        rule 1020 {
+            action accept
+            protocol igmp
+        }
+        rule 1021 {
+            action accept
+            destination {
+                address 224.0.0.0/4
+            }
+        }
+        rule 1030 {
+            action accept
+            destination {
+                port 520
+            }
+            protocol udp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 1040 {
+            action accept
+            protocol 89
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2000 {
+            action accept
+            destination {
+                port 22
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2010 {
+            action accept
+            destination {
+                port 161
+            }
+            protocol udp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2020 {
+            action accept
+            destination {
+                port 7
+            }
+            protocol tcp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 2030 {
+            action accept
+            destination {
+                port 5001
+            }
+            protocol tcp_udp
+            source {
+                group {
+                    network-group NET-MANAGEMENT
+                }
+            }
+            state {
+                new enable
+            }
+        }
+        rule 3000 {
+            action accept
+            protocol ipip
+            source {
+                address 169.244.27.9
+            }
+            state {
+                new enable
+            }
+        }
+    }
+    receive-redirects disable
+    send-redirects disable
+    source-validation disable
+    syn-cookies enable
+}
+interfaces {
+    ethernet eth0 {
+        duplex auto
+        speed auto
+    }
+    ethernet eth1 {
+        duplex auto
+        speed auto
+    }
+    ethernet eth2 {
+        duplex auto
+        speed auto
+    }
+    ethernet eth3 {
+        address 192.168.255.1/30
+        description "Link to Site Firewall"
+        duplex auto
+        firewall {
+            local {
+                name INSIDE-LOCAL
+            }
+        }
+        speed auto
+    }
+    ethernet eth4 {
+        duplex auto
+        speed auto
+    }
+    ethernet eth5 {
+        duplex auto
+        speed auto
+    }
+    ethernet eth6 {
+        description WAN
+        duplex auto
+        firewall {
+            local {
+                name OUTSIDE-LOCAL
+            }
+        }
+        ip {
+            rip {
+                split-horizon {
+                    poison-reverse
+                }
+            }
+        }
+        speed auto
+        vif 2 {
+            address 169.244.5.202/30
+            firewall {
+                local {
+                    name OUTSIDE-LOCAL
+                }
+            }
+            ip {
+                rip {
+                    split-horizon {
+                        poison-reverse
+                    }
+                }
+            }
+        }
+        vif 3 {
+            address 169.244.144.173/31
+            firewall {
+                local {
+                    name OUTSIDE-LOCAL
+                }
+            }
+            ip {
+                rip {
+                    split-horizon {
+                        poison-reverse
+                    }
+                }
+            }
+        }
+        vif 10 {
+            address 169.244.71.177/28
+            firewall {
+                in {
+                    modify ROUTE-L-INTERNAL
+                }
+                local {
+                    name OUTSIDE-LOCAL
+                }
+            }
+            ip {
+                ospf {
+                    authentication {
+                        plaintext-password inTRaK12
+                    }
+                    dead-interval 40
+                    hello-interval 10
+                    network broadcast
+                    priority 255
+                    retransmit-interval 5
+                    transmit-delay 1
+                }
+            }
+        }
+    }
+    ethernet eth7 {
+        address 169.244.86.177/28
+        description "Leonard MS / RSU34"
+        duplex auto
+        firewall {
+            in {
+                name LAN-IN
+            }
+            local {
+                name INSIDE-LOCAL
+            }
+            out {
+                name LAN-OUT
+            }
+        }
+        ip {
+            source-validation strict
+        }
+        speed auto
+    }
+    loopback lo {
+        address 100.127.252.114/32
+    }
+}
+policy {
+    prefix-list RIP-OUT {
+        rule 10 {
+            action deny
+            prefix 0.0.0.0/0
+        }
+        rule 40 {
+            action deny
+            le 32
+            prefix 10.0.0.0/8
+        }
+        rule 41 {
+            action deny
+            le 32
+            prefix 172.16.0.0/12
+        }
+        rule 42 {
+            action deny
+            le 32
+            prefix 192.168.0.0/16
+        }
+        rule 50 {
+            action permit
+            ge 32
+            prefix 100.127.248.0/21
+        }
+        rule 80 {
+            action permit
+            prefix 169.244.86.176/28
+        }
+        rule 81 {
+            action permit
+            prefix 169.244.71.176/28
+        }
+        rule 99 {
+            action deny
+            le 32
+            prefix 0.0.0.0/0
+        }
+    }
+}
+protocols {
+    ospf {
+        area 10 {
+            network 64.45.64.0/18
+            network 65.18.64.0/19
+            network 207.166.224.0/19
+            network 65.18.0.0/18
+            network 65.18.96.0/20
+            network 169.244.0.0/16
+            network 10.230.0.0/15
+            network 100.127.252.114/32
+            network 192.168.255.0/30
+        }
+        default-information {
+            originate {
+                metric-type 2
+            }
+        }
+        distance {
+            global 200
+        }
+        parameters {
+            abr-type cisco
+            router-id 100.127.252.114
+        }
+        passive-interface default
+        passive-interface-exclude eth6.10
+        redistribute {
+            static {
+                metric-type 2
+            }
+        }
+    }
+    rip {
+        distribute-list {
+            prefix-list {
+                out RIP-OUT
+            }
+        }
+        interface eth6
+        interface eth6.3
+        interface eth6.2
+        neighbor 169.244.5.201
+        neighbor 169.244.144.172
+        passive-interface default
+        redistribute {
+            connected {
+            }
+            ospf {
+            }
+            static {
+            }
+        }
+    }
+    static {
+        route 0.0.0.0/0 {
+            next-hop 169.244.5.201 {
+                distance 254
+            }
+        }
+        route 10.0.0.0/8 {
+            blackhole {
+                distance 254
+            }
+        }
+        route 172.16.0.0/12 {
+            blackhole {
+                distance 254
+            }
+        }
+        route 192.168.0.0/16 {
+            blackhole {
+                distance 254
+            }
+        }
+        table 10 {
+            route 0.0.0.0/0 {
+                next-hop 192.168.255.2 {
+                }
+            }
+        }
+    }
+}
+service {
+    snmp {
+        community stacasus {
+            authorization ro
+        }
+        location "44.93321,-68.655796,329,Leonard MS"
+        trap-source 169.244.86.177
+    }
+    ssh {
+        listen-address 169.244.5.202
+        listen-address 169.244.86.177
+        listen-address 169.244.144.173
+        listen-address 100.127.252.114
+        listen-address 169.244.71.177
+        port 22
+        protocol-version v2
+    }
+    unms {
+    }
+}
+system {
+    conntrack {
+        expect-table-size 262144
+        hash-size 1048576
+        modules {
+            sip {
+                disable
+            }
+        }
+        table-size 1048576
+    }
+    domain-name msln.net
+    host-name GW-LeonardMS
+    ip {
+        arp {
+            base-reachable-time 30
+            stale-time 60
+            table-size 8192
+        }
+    }
+    login {
+        banner {
+            pre-login "\n*************************************************************************\nAccess to this system is for UMS authorized personnel only.\nAny unauthorized use of this system is unlawful, and may be subject to\ncivil and/or criminal penalties.\nAny use of this system may be logged or monitored without further notice,\nand the resulting logs may be used as evidence in court.\n*************************************************************************\n\n"
+        }
+        user msuid {
+            authentication {
+                encrypted-password $5$gHd5QsImuI.d/nqp$A4UZifhyBKfD4Xq1V8nS1.MVt.jFFaMP3rqUm2f9lX4
+            }
+            level admin
+        }
+        user recovery {
+            authentication {
+                encrypted-password $6$7dX1UyHR.IoeGeL$gTkQdvrd1N2Juvs8kVgrHI/OhclEwY3NfEYvaKWnvaiB0JsxlDEe4LfM.8YIlb9YVoPW2AJmNl/FvqaMESvAa0
+            }
+            level admin
+        }
+    }
+    name-server 130.111.32.11
+    name-server 130.111.130.7
+    ntp {
+        server clocko.msln.net {
+        }
+        server clockp.msln.net {
+        }
+    }
+    offload {
+        hwnat disable
+        ipsec enable
+        ipv4 {
+            forwarding enable
+            gre enable
+            vlan enable
+        }
+        ipv6 {
+            forwarding enable
+            vlan enable
+        }
+    }
+    package {
+        repository wheezy {
+            components "main contrib non-free"
+            distribution wheezy
+            password ""
+            url http://archive.debian.org/debian
+            username ""
+        }
+    }
+    syslog {
+        global {
+            facility all {
+                level notice
+            }
+            facility protocols {
+                level debug
+            }
+        }
+    }
+    time-zone US/Eastern
+}
